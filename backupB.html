@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html>
+"running game" version 0.5 prepublish pc/mac non-compiled backup
+
+<head>
+  <title>Running Game (test site)</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      width: 100%;
+    }
+
+    canvas {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    #title {
+      position: absolute;
+      top: 35%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 36px;
+      font-weight: bold;
+      color: black;
+      z-index: 10;
+    }
+
+    #startButton {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 15px 30px;
+      font-size: 30px;
+      cursor: pointer;
+      background-color: green;
+      color: black;
+      border: none;
+      border-radius: 10px;
+      z-index: 10;
+    }
+
+    #skipTuturial {
+      position: absolute;
+      top: 56.8%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 7px 16px;
+      font-size: 17px;
+      cursor: pointer;
+      background-color: grey;
+      color: black;
+      border: none;
+      border-radius: 10px;
+      z-index: 10;
+    }
+
+    #hard {
+      position: absolute;
+      top: 62%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 7px 16px;
+      font-size: 17px;
+      cursor: pointer;
+      background-color: red;
+      color: black;
+      border: none;
+      border-radius: 10px;
+      z-index: 10;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="title">
+    Running Game (test) //Backup file
+  </div>
+  <button id="startButton">Play now</button>
+  <button id="skipTuturial">Skip intro</button>
+  <button id="hard">Start harder & faster</button>
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    let intro = true
+    let speederSpeed = 0.004
+    let extraSpeed = 10
+    let health = 10
+    let canLoseHealth = true
+    let choice = 3
+    let choiceB = 1
+    let points = 0
+    let gainPoints = true
+    let obstacleType = 100
+    let obstacleLength = 65
+    let obstacleTypeB = 100
+    let obstacleDown = 620
+    let obstacleDownB = 620
+    let obstacleSpeed = 10
+    let obstacleSpeedB = 10
+    let randomizeObstacleChoice = Math.floor(Math.random() * 100)
+    let obstacleMoving = true
+    let canChoose = true
+    let canChooseB = true
+    let canJump = true
+    let canDig = true
+    let playerColor = 'blue'
+    let obstacleColor = 'white'
+    let obstacleColorB = 'gray'
+    let playerLeft = 180
+    let move = 1900
+    let moveB = 1900
+    let playerTop = 600 // vertical position
+    const groundLevel = 600
+    const jumpHeight = 400
+    let jumpspeed = 10
+    let slowedJump = false
+    let jumpingUp = false
+    let fallingDown = false
+    let isJumping = false
+    let paused = false
+    let canContinue = true
+    let canSlow = true
+    let obstacleBAhead = false
+    let stopOverrun = false
+    let difficulty = 1
+
+    function startGame() {
+      document.getElementById('startButton').style.display = 'none'
+      document.getElementById('title').style.display = 'none'
+      document.getElementById('skipTuturial').style.display = 'none'
+      document.getElementById('hard').style.display = 'none'
+      const canvas = document.getElementById('gameCanvas')
+      const ctx = canvas.getContext('2d')
+
+      function resizeCanvas() {
+        canvas.width = window.innerWidth
+        canvas.height = window.innerHeight
+      }
+      if (intro === true) {
+        alert(
+          'How to play: use the arrow keys to jump and dig around the obstacles. press escape to pause.'
+        )
+        alert(
+          'you can hit obstcales without dying. it takes eaither a really bad hit or multiple slight hits to die'
+        )
+        alert(
+          'the game gets harder as it continues. good luck!'
+        )
+        alert(
+          'some things in game are purposeful, not bugs. please tell me about any bugs or error reports, but the following are purposeful: pausing before dying, player changing colors, multiple obstacles'
+        )
+      }
+      resizeCanvas()
+      window.addEventListener('resize', resizeCanvas)
+
+      function frame() {
+        moveEverything(canvas)
+        drawEverything(ctx, canvas)
+        checkLoseCondition()
+        if (canContinue) {
+          requestAnimationFrame(frame)
+        }
+      }
+
+      requestAnimationFrame(frame)
+    }
+    function skipIntro() {
+      intro = false
+      startGame()
+    }
+    function hard() {
+      difficulty = 1.5
+      speederSpeed = 0.0027
+      extraSpeed = 3.4
+      points = 100
+      skipIntro()
+    }
+    function stopGame() {
+      isJumping = false
+      jumpingUp = false
+      fallingDown = false
+      obstacleMoving = false
+      canJump = false
+      canDig = false
+      canLoseHealth = false
+      gainPoints = false
+      setTimeout(() => {
+        alert(
+          'You got too close to the obstacle and died! Click OK to try again'
+        )
+        location.reload();
+        canContinue = false
+      }, 1500)
+    }
+
+    function moveEverything(canvas) {
+      // Move obstacle
+      console.log('Choice B', choiceB)
+      if (obstacleMoving) {
+        if (move < -65) {
+          if (canChoose) {
+            choice = Math.floor(Math.random() * 4) + 1;
+            canChoose = false
+            choose()
+            // console.log(choice)
+            move = Math.round(canvas.width / 60) * 60;
+          }
+
+        }
+        moveB -= obstacleSpeed
+        move -= obstacleSpeed
+        // console.log('move is', move)
+        // console.log('moveB is', moveB)
+      }
+      if (moveB < -65 && difficulty > 2.3 && obstacleMoving) {
+        if (canChooseB) {
+          choiceB = Math.floor(Math.random() * 5) + 1;
+          canChooseB = false
+          chooseB()
+          moveB = Math.round(canvas.width / 60) * 60;
+        }
+      }
+      else {
+        choiceB = 0 //set the choice to something that does not make a function
+      }
+
+      if (obstacleBAhead && !stopOverrun) { // makes the secondary obstacle ahead of the primary obstacle from player's perspective
+        moveB = move + 700
+        stopOverrun = true
+      }
+      difficulty += 0.00025
+
+      // global speed factor (lower = faster)
+      extraSpeed -= speederSpeed
+
+      // decay the rate of change smoothly
+      speederSpeed *= 0.9998   // tweak this number to control curve
+
+      // clamp the rate so it never stalls or reverses
+      speederSpeed = Math.max(speederSpeed, 0.00005)
+
+      // absolute floor for game speed
+      if (extraSpeed < 0.003) {
+        extraSpeed = 0.003
+      }
+      if (gainPoints) {
+        points += 0.5 / extraSpeed
+      }
+      if (jumpingUp) {
+        playerTop -= jumpspeed / (extraSpeed / 5)
+        if (playerTop <= jumpHeight + 60 && !slowedJump && jumpingUp) {
+          jumpspeed -= 6
+          slowedJump = true
+        }
+        if (playerTop <= jumpHeight) {
+          playerTop = jumpHeight
+          jumpingUp = false
+          setTimeout(() => {
+            fallingDown = true
+          }, 500 / extraSpeed) // stop at top
+        }
+      }
+
+      // Handle fall down
+      if (fallingDown) {
+        playerTop += jumpspeed / (extraSpeed / 5)
+        if (playerTop <= jumpHeight + 60 && slowedJump && fallingDown) {
+          jumpspeed += 6
+          slowedJump = false
+        }
+        if (playerTop >= groundLevel) {
+          playerTop = groundLevel
+          fallingDown = false
+          isJumping = false
+        }
+      }
+      if (paused === true) { // pause the game
+        paused = false
+        alert(
+          'You paused the game'
+        );
+      }
+    }
+    function choose() { // choose what type of obstacle the primary obstacle will be
+      if (choice === 2) { // ladybug: moves underground where player might try to dig; faster
+        obstacleType = 75
+        obstacleLength = 80
+        obstacleDown = 740
+        obstacleSpeed = 60 / (extraSpeed * 0.8)
+        canChoose = true
+        obstacleColor = 'red'
+      }
+      else if (choice === 1) { // egg: jump over or dig under; basic obstacle
+        obstacleType = 100
+        obstacleLength = 65
+        obstacleDown = 620
+        obstacleSpeed = 60 / (extraSpeed)
+        canChoose = true
+        obstacleColor = 'tan'
+      }
+      else if (choice === 3) { // bird: moves in air where player would normally jump; faster
+        obstacleType = 80
+        obstacleLength = 60
+        obstacleDown = 500
+        obstacleSpeed = 60 / (extraSpeed * 0.8)
+        canChoose = true
+        obstacleColor = 'blue'
+      }
+      else if (choice === 4 && difficulty > 1.6) { // unnamed: goes fast, then slows down (appears to be running toward player at first, but doesn't actually)
+        obsatcleType = 120
+        obstacleDown = 610
+        obstacleSpeed = 60 / (extraSpeed * 0.7)
+        setTimeout(() => {
+          obstacleSpeed = 60 / (extraSpeed)
+        }, extraSpeed * 100)
+        obstacleColor = 'black'
+        canChoose = true
+      }
+      else { // if difficulty is too low for the obstacle chosen, gives a "small egg" that is the weakest obstacle
+        obstacleType = 70
+        obstacleLength = 45
+        obstacleDown = 640
+        obstacleSpeed = 60 / (extraSpeed * 1.1)
+        canChoose = true
+        obstacleColor = 'tan'
+      }
+    }
+    function chooseB() {
+      if (choiceB === 2) {
+        obstacleTypeB = 80
+        obstacleDownB = 740
+        obstacleSpeedB = 1
+        obstacleColorB = 'red'
+        stopOverrun = false
+        obstacleBAhead = false
+        moveB = move
+        canChooseB = true
+      }
+      if (choiceB === 3) {
+        obstacleTypeB = 80
+        obstacleDownB = 500
+        obstacleSpeedB = 15
+        obstacleColorB = 'blue'
+        stopOverrun = false
+        obstacleBAhead = false
+        moveB = move
+        canChooseB = true
+      }
+      if (choiceB === 1) {
+        obstacleTypeB = 80
+        obstacleDownB = 740
+        obstacleSpeedB = 1
+        obstacleColorB = 'red'
+        obstacleBAhead = true
+        canChooseB = true
+      }
+      if (choiceB === 4) {
+        obstacleTypeB = 80
+        obstacleDownB = 500
+        obstacleSpeedB = 15
+        obstacleColorB = 'blue'
+        obstacleBAhead = true
+        canChooseB = true
+      }
+    }
+    function drawEverything(ctx, canvas) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      ctx.fillStyle = '#1ef3fa' // Sky
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      ctx.fillStyle = 'green' // Ground
+      ctx.fillRect(0, 700, canvas.width, canvas.height - 700)
+
+      ctx.fillStyle = obstacleColor // Obstacle
+      ctx.fillRect(move, obstacleDown, obstacleLength, obstacleType)
+
+      ctx.fillStyle = obstacleColorB // Secondary Obstacle
+      ctx.fillRect(moveB, obstacleDownB, 55, obstacleTypeB)
+
+      ctx.fillStyle = playerColor // Player
+      ctx.fillRect(playerLeft, playerTop, 120, 130)
+
+      ctx.fillStyle = 'black'
+      ctx.font = '20px Arial'
+      ctx.textAlign = 'center'
+      ctx.fillText(Math.floor(points), playerLeft + 120 / 2, playerTop - 10)
+
+      ctx.fillStyle = 'black'
+      ctx.font = '15px Arial'
+      ctx.textAlign = 'center'
+      ctx.fillText(Math.floor(health), playerLeft + 120 / 2, playerTop - 50)
+    }
+
+    function checkLoseCondition() { //checks if the player has ran into an obstacle
+      const playerRight = playerLeft + 120
+      const playerBottom = playerTop + 130
+      const eggLeft = move
+      const eggLeftB = moveB
+      const eggRight = move + obstacleLength
+      const eggRightB = moveB + 65
+      const eggTop = obstacleDown
+      const eggTopB = obstacleDownB
+      const eggBottom = obstacleDown + obstacleType
+      const eggBottomB = obstacleDownB + obstacleTypeB
+
+      const touchingLeftEdge = (eggLeft <= playerRight && eggLeft + 65 >= playerLeft)
+      const hit =
+        playerRight > eggLeft &&
+        playerLeft < eggRight &&
+        playerBottom > eggTop &&
+        playerTop < eggBottom
+      const hitB =
+        playerRight > eggLeftB &&
+        playerLeft < eggRightB &&
+        playerBottom > eggTopB &&
+        playerTop < eggBottomB
+
+      if (hit && canLoseHealth || hitB && canLoseHealth) {
+        health--
+        extraSpeed += 0.5
+        speederSpeed += 0.001
+        playerColor = 'white'
+        setTimeout(() => {
+          playerColor = 'blue'
+        }, 1000 - (health * 75))
+        setTimeout(() => {
+          speederSpeed -= 0.001
+        }, 1500)
+      }
+      if (health === 0) {
+        playerColor = 'orange'
+        obstacleColor = 'yellow'
+        obstacleColorB = 'red'
+        stopGame()
+      }
+      if (playerLeft != 180) {
+        console.log(playerLeft)
+        alert(
+          'Error: the player is incorrecly placed on the screen. Your computer will attemt to fix this issue.'
+        )
+        error()
+        playerLeft = 180
+      }
+      if (jumpingUp === true && fallingDown === true) {
+        console.log(isJumping)
+        console.log(fallingDown)
+        alert(
+          'Error: the player is jumping and falling at the same time.'
+        )
+        error()
+      }
+    }
+    function error() {
+      alert(
+        'Please report your error in detail and explain what was happening before it happened. press okay and see if you can find any unusual things happening besides your error and report those as well'
+      )
+    }
+    document
+      .getElementById('startButton')
+      .addEventListener('click', startGame)
+    document
+      .getElementById('skipTuturial')
+      .addEventListener('click', skipIntro)
+    document
+      .getElementById('hard')
+      .addEventListener('click', hard)
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === ' ' && !isJumping && canJump) {
+        isJumping = true
+        jumpingUp = true
+      }
+
+      if (event.key === 'ArrowDown') {
+        if (playerTop < 850 && canDig) {
+          playerTop += 200
+          canJump = false
+          if (playerTop > 850) {
+            playerTop = 850
+            canJump = true
+          }
+        }
+      }
+      if (event.key === 'ArrowUp') {
+        if (playerBottom = groundLevel && !isJumping && canJump) {
+          isJumping = true
+          jumpingUp = true
+        }
+        else {
+          if (playerBottom > groundLevel) {
+            playerTop = groundLevel - 130
+          }
+        }
+      }
+      if (event.keyCode === 27) {
+        paused = true
+      }
+      if (event.key === 'f') {
+        extraSpeed -= 0.5
+      }
+      if (event.key === 's') {
+        extraSpeed += 0.5
+      }
+      if (event.key === 'r') {
+        extraSpeed = 10
+      }
+    })
+  </script>
+</body>
+
+</html>

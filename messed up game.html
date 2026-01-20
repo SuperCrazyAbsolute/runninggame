@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+error:textlocation=unidentified2 score: error:score=unidentified1
+jk these errors are fake haha
+<head>
+    <title>Running Game (playing with messed up code)</title>
+    <style>
+        html, body {
+            margin: 0; padding: 0; overflow: hidden; height: 100%; width: 100%;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #title {
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 36px;
+            font-weight: bold;
+            color: black;
+            z-index: 10;
+        }
+
+        #startButton {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            font-size: 24px;
+            cursor: pointer;
+            background-color: green;
+            color: black;
+            border: none;
+            border-radius: 10px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div id="title">Running Game (test)
+        (if stuck on reload, close this tab and open a new one and click test C in the bookmarks)
+    </div>
+    <button id="startButton">Start Game</button>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        let score = 0
+        let pixelsPerSecond = 100
+        let detect = 125;
+        let move = 1900;
+        let playermove = 600; // vertical position
+        const groundLevel = 600;
+        const jumpHeight = 300;
+        let jumpingUp = false;
+        let fallingDown = false;
+        let isJumping = false;
+
+        function startGame() {
+            document.getElementById('startButton').style.display = 'none';
+            document.getElementById('title').style.display = 'none';
+
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            function frame() {
+                moveEverything(canvas);
+                drawEverything(ctx, canvas);
+                checkLoseCondition();
+                requestAnimationFrame(frame);
+            }
+
+            setTimeout( () => {
+                requestAnimationFrame(frame);
+            }, 1000/pixelsPerSecond);
+        }
+
+        function moveEverything(canvas) {
+            // Move obstacle
+            move -= 6;
+            if (move < -65) {
+                
+                move = canvas.width;
+            }
+            // speed up time
+            pixelsPerSecond += 1
+
+            // Handle jump upward
+            if (jumpingUp) {
+                playermove -= 10;
+                if (playermove <= jumpHeight) {
+                    playermove = jumpHeight;
+                    jumpingUp = false;
+
+                    // Pause at top, then start falling
+                    setTimeout(() => {
+                        fallingDown = true;
+                    }, 125); // Pause for time at the top
+                }
+            }
+
+            // Handle fall down (very low gravity)
+            if (fallingDown) {
+                playermove += 1;
+                if (playermove >= groundLevel) {
+                    playermove = groundLevel;
+                    fallingDown = false;
+                    isJumping = false;
+                }
+            }
+        }
+
+        function drawEverything(ctx, canvas) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#1ef3fa'; // Sky
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = 'green'; // Ground
+            ctx.fillRect(0, 700, canvas.width, canvas.height - 700);
+
+            ctx.fillStyle = 'tan'; // Obstacle
+            ctx.fillRect(move, 620, 65, 100);
+
+            ctx.fillStyle = 'blue'; // Player
+            ctx.fillRect(detect, playermove, 85, 120);
+        }
+
+        function checkLoseCondition() {
+            const playerLeft = detect;
+            const playerRight = detect + 85;
+            const playerTop = playermove;
+            const playerBottom = playermove + 120;
+
+            const eggLeft = move;
+            const eggTop = 620;
+            const eggBottom = 720;
+
+            const touchingLeftEdge = eggLeft <= playerRight && eggLeft + 65 >= playerLeft;
+            const verticalOverlap = playerBottom > eggTop && playerTop < eggBottom;
+
+            if (touchingLeftEdge && verticalOverlap) {
+                alert("You got too close to the obstacle and died! Click OK to try again.");
+                location.reload();
+            }
+        }
+
+        document.getElementById('startButton').addEventListener('click', startGame);
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === ' ' && !isJumping) {
+                isJumping = true;
+                jumpingUp = true;
+                  // you can add sound here if needed
+            }
+        
+        if (event.key === 'ArrowDown') {
+        if (playermove < 850) {
+            playermove += 250;
+            if (playermove > 850) {
+                playermove = 850;
+            }
+        }
+    }
+
+    if (event.key === 'ArrowUp') {
+        if (playermove > 600) {
+            playermove -= 250;
+            if (playermove < 600) {
+                playermove = 600;
+            }
+        }
+    }
+        })
+
+    </script>
+</body>
+</html>
