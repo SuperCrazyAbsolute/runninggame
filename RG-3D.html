@@ -1,27 +1,226 @@
 <html>	
+	Running Game 3D version 0.1
+	<head>
+  <title>Running Game 3D (0.1)</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      width: 100%;
+    }
+
+    canvas {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    #title {
+      position: absolute;
+      top: 35%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 36px;
+      font-weight: bold;
+      color: black;
+      z-index: 10;
+    }
+
+    #startButton {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 15px 30px;
+      font-size: 30px;
+      cursor: pointer;
+      background-color: green;
+      color: black;
+      border: none;
+      border-radius: 10px;
+      z-index: 10;
+    }
+
+    #skipTuturial {
+      position: absolute;
+      top: 56.8%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 7px 16px;
+      font-size: 17px;
+      cursor: pointer;
+      background-color: grey;
+      color: black;
+      border: none;
+      border-radius: 10px;
+      z-index: 10;
+    }
+
+    #settings {
+      position: absolute;
+      top: 62%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 7px 16px;
+      font-size: 17px;
+      cursor: pointer;
+      background-color: white;
+      color: black;
+      border: none;
+      border-radius: 10px;
+      z-index: 10;
+    }
+
+    #hard {
+      position: absolute;
+      top: 70%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 7px 16px;
+      font-size: 17px;
+      cursor: pointer;
+      background-color: red;
+      color: black;
+      border: none;
+      border-radius: 10px;
+      z-index: 10;
+    }
+
+    #easy {
+      position: absolute;
+      top: 78%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 7px 16px;
+      font-size: 17px;
+      cursor: pointer;
+      background-color: green;
+      color: black;
+      border: none;
+      border-radius: 10px;
+      z-index: 10;
+    }
+
+    #resume {
+      position: absolute;
+      top: 10%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 7px 16px;
+      font-size: 17px;
+      cursor: pointer;
+      background-color: green;
+      color: black;
+      border: none;
+      border-radius: 10px;
+      z-index: 10;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="title">
+    Running Game (test) /Main File
+  </div>
+  <button id="startButton">Play now</button>
+  <button id="skipTuturial">Skip intro</button>
+  <button id="resume" class="hidden">Resume</button>
+  <button id="settings">Settings</button>
+  <button id="hard" class="hidden">Hard mode</button>
+  <button id="easy" class="hidden">Easy mode</button>
+  <canvas id="gameCanvas"></canvas>
 	<script>
-// This is the complete recodeing of the running game (RG), originally in 2d.
-// explination: the player still uses arrow keys to move,
+// This is the complete recoding of the running game (RG), originally in 2d.
+// explanation: the player still uses arrow keys to move,
 // 		but it is in a style more similar to minion rush or temple run.
 // 		however, it is still a unique game.
 // movements: left and right to change lanes (but not outside of the lanes), 
 // 		up to jump (or move front up on vehicles and such) 
 // 		(this may kill the player on hard modes if there is a roof), 
 // 		down to slide/dig (depending on ground type) or stop the jump (harder modes).
-// this is the same on other devices, such as mobile
+// 		this is the same on other devices, such as mobile
 // things to change:
 // 		change the obstacles from right to left to back and grow.
 // 		add different ground types
-// 		change the "low difficulty" obstacle from samll egg to math.random()
-// 		change player to a back veiw and take away outlines
-// 		add "obstacle transperancy" when they are very close or very far
+// 		change the "low difficulty" obstacle from small egg to math.random()
+// 		change player to a back view and take away outlines
+// 		add "obstacle transparency" when they are very close or very far
 // 		smoothen jumping and sliding
 // 		add in "biomes" (different themes with different obstacles, backgrounds, and music)
-// 		add in food to collect for points but not a trail (too obvios path)
-// 		make charachters unlockable and customizable
+// 		add in food to collect for points but not a trail (too obvious path)
+// 		make characters unlockable and customizable
 // 		add milestone rooms (after specific time)
 // 			these will tell the player their score, what the difficulty has changed to,
 // 			and offer choice of the next biome (random is also an option)
-// 
+// 		health loss will be based on speed and obstacle type, 
+// 			and will be shown as a bar on the top of the screen.
+// 		there will be a "death screen" that shows the player's score, 
+// 			and offers to restart or go to the main menu
+// 		obstacles will only speed up on tile edges but stay smooth and consistent
+// 		make the delay between frames 1 millisecond maximum but change it for possibility testing
+// 		name the difficulties: granny, easy, medium, hard, insane, olympian 
+// 			(add + or - to show in between difficulties)
+// 			(olympian mode is no kidding, it is for less than 1% of players to get to)
+// 		add in a percentile ranking system and record highscores and averages
+// 		mark off the things that are done
+    let intro = true //tuturial in the beginning
+    let canStop = true
+    let speederSpeed = 0.003 //how quickly game speeds up
+    let extraSpeed = 10 //speeds game up (lower number means higher speed)
+    let health = 10 //allows the player to survive slight hits
+    let canLoseHealth = true
+    let choice = 3 //which obstacle shows up
+    let choiceB = 1
+    let canChoose = true
+    let canChooseB = true
+    let points = 0 //the player's actual score (not the displayed score)
+    let gainPoints = true
+    let obstacleType = 100 //obstacle's height
+    let obstacleLength = 65
+    let obstacleTypeB = 100
+    let obstacleDown = 620 //obstacle's distance from the top of the screen
+    let obstacleDownB = 620
+    let obstacleSpeed = 10
+    let obstacleSpeedB = 10
+    let obstacleSide = 1900 //obstacle's distance from the left side of the screen
+    let obstacleSideB = 1900
+    let obstacleMoving = true
+    let canJump = true
+    let canDig = true
+	let canSlide = true
+	let canStopJump = true
+    let obstacleColor = 'white' //color of the obstacle (will be changed to an image later)
+    let obstacleColorB = 'gray'
+    let playerLeft = 180 //players left side
+	let playerSide = 180 //players distance from the left side of the screen
+    let playerTop = 600 //player's distance from the top of the screen
+    const groundLevel = 730 //actual ground level (horizon line is slighly higher to make it realistic)
+    const jumpHeight = 400 //the height of the player's jump
+    let jumpspeed = 100 //the speed of the jump and fall
+    let gravity = 25 //the gravity affecting the jump
+    let jumpingUp = false
+    let fallingDown = false
+    let isJumping = false
+    let diggingDown = false
+    let comingUp = false
+    let isDigging = false
+    let paused = false
+    let canContinue = true //affects whether or not to continue the game loop
+    let canSlow = true
+    let obstacleBAhead = false //puts the secondary obsctale ahead of the first instead of together
+    let difficulty = 1 //affects specific game properties
+
+	const canvas = document.getElementById('gameCanvas')
+	const ctx = canvas.getContext('2d')
+
+	
 	</script>
+</body>
 	</html>
