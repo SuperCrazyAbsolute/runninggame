@@ -1,6 +1,7 @@
-<html>	
-	Running Game 3D version 0.1
-	<head>
+<html>
+Running Game 3D version 0.1
+
+<head>
   <title>Running Game 3D (0.1)</title>
   <style>
     html,
@@ -45,7 +46,7 @@
       z-index: 10;
     }
 
-    #skipTuturial {
+    #skipTutorial {
       position: absolute;
       top: 56.8%;
       left: 50%;
@@ -125,53 +126,53 @@
     }
   </style>
 </head>
+
 <body>
   <div id="title">
     Running Game (test) /Main File
   </div>
   <button id="startButton">Play now</button>
-  <button id="skipTuturial">Skip intro</button>
+  <button id="skipTutorial">Skip intro</button>
   <button id="resume" class="hidden">Resume</button>
   <button id="settings">Settings</button>
   <button id="hard" class="hidden">Hard mode</button>
   <button id="easy" class="hidden">Easy mode</button>
   <canvas id="gameCanvas"></canvas>
-	<script>
-// This is the complete recoding of the running game (RG), originally in 2d.
-// explanation: the player still uses arrow keys to move,
-// 		but it is in a style more similar to minion rush or temple run.
-// 		however, it is still a unique game.
-// movements: left and right to change lanes (but not outside of the lanes), 
-// 		up to jump (or move front up on vehicles and such) 
-// 		(this may kill the player on hard modes if there is a roof), 
-// 		down to slide/dig (depending on ground type) or stop the jump (harder modes).
-// 		this is the same on other devices, such as mobile
-// things to change:
-// 		change the obstacles from right to left to back and grow.
-// 		add different ground types
-// 		change the "low difficulty" obstacle from small egg to math.random()
-// 		change player to a back view and take away outlines
-// 		add "obstacle transparency" when they are very close or very far
-// 		smoothen jumping and sliding
-// 		add in "biomes" (different themes with different obstacles, backgrounds, and music)
-// 		add in food to collect for points but not a trail (too obvious path)
-// 		make characters unlockable and customizable
-// 		add milestone rooms (after specific time)
-// 			these will tell the player their score, what the difficulty has changed to,
-// 			and offer choice of the next biome (random is also an option)
-// 		health loss will be based on speed and obstacle type, 
-// 			and will be shown as a bar on the top of the screen.
-// 		there will be a "death screen" that shows the player's score, 
-// 			and offers to restart or go to the main menu
-// 		obstacles will only speed up on tile edges but stay smooth and consistent
-// 		make the delay between frames 1 millisecond maximum but change it for possibility testing
-// 		name the difficulties: granny, easy, medium, hard, insane, olympian 
-// 			(add + or - to show in between difficulties)
-// 			(olympian mode is no kidding, it is for less than 1% of players to get to)
-// 		add in a percentile ranking system and record highscores and averages
-// 		mark off the things that are done
-    let intro = true //tuturial in the beginning
-    let canStop = true
+  <script>
+    // This is the complete recoding of the running game (RG), originally in 2d.
+    // explanation: the player still uses arrow keys to move,
+    // 		but it is in a style more similar to minion rush or temple run.
+    // 		however, it is still a unique game.
+    // movements: left and right to change lanes (but not outside of the lanes), 
+    // 		up to jump (or move front up on vehicles and such) 
+    // 		(this may kill the player on hard modes if there is a roof), 
+    // 		down to slide/dig (depending on ground type) or stop the jump (harder modes).
+    // 		this is the same on other devices, such as mobile
+    // things to change:
+    // 		change the obstacles from right to left to back and grow.
+    // 		add different ground types
+    // 		change the "low difficulty" obstacle from small egg to math.random()
+    // 		change player to a back view and take away outlines
+    // 		add "obstacle transparency" when they are very close or very far
+    // 		smoothen jumping and sliding
+    // 		add in "biomes" (different themes with different obstacles, backgrounds, and music)
+    // 		add in food to collect for points but not a trail (too obvious path)
+    // 		make characters unlockable and customizable
+    // 		add milestone rooms (after specific time)
+    // 			these will tell the player their score, what the difficulty has changed to,
+    // 			and offer choice of the next biome (random is also an option)
+    // 		health loss will be based on speed and obstacle type, 
+    // 			and will be shown as a bar on the top of the screen.
+    // 		there will be a "death screen" that shows the player's score, 
+    // 			and offers to restart or go to the main menu
+    // 		obstacles will only speed up on tile edges but stay smooth and consistent
+    // 		make the delay between frames 1 millisecond maximum but change it for possibility testing
+    // 		name the difficulties: granny, easy, medium, hard, insane, olympian 
+    // 			(add + or - to show in between difficulties)
+    // 			(olympian mode is no kidding, it is for less than 1% of players to get to)
+    // 		add in a percentile ranking system and record highscores and averages
+    // 		mark off the things that are done
+    let intro = true //tutorial in the beginning
     let speederSpeed = 0.003 //how quickly game speeds up
     let extraSpeed = 10 //speeds game up (lower number means higher speed)
     let health = 10 //allows the player to survive slight hits
@@ -194,12 +195,12 @@
     let obstacleMoving = true
     let canJump = true
     let canDig = true
-	let canSlide = true
-	let canStopJump = true
+    let canSlide = true
+    let canStopJump = true
     let obstacleColor = 'white' //color of the obstacle (will be changed to an image later)
     let obstacleColorB = 'gray'
     let playerLeft = 180 //players left side
-	let playerSide = 180 //players distance from the left side of the screen
+    let playerSide = canvas.width / 2 - 60 //players distance from the left side of the screen
     let playerTop = 600 //player's distance from the top of the screen
     const groundLevel = 730 //actual ground level (horizon line is slighly higher to make it realistic)
     const jumpHeight = 400 //the height of the player's jump
@@ -214,13 +215,59 @@
     let paused = false
     let canContinue = true //affects whether or not to continue the game loop
     let canSlow = true
-    let obstacleBAhead = false //puts the secondary obsctale ahead of the first instead of together
+    let obstacleBAhead = false //puts the secondary obstacle ahead of the first instead of together
     let difficulty = 1 //affects specific game properties
+    let frameDelay = 1 //delay between frames (1 millisecond maximum but change it for possibility testing)
 
-	const canvas = document.getElementById('gameCanvas')
-	const ctx = canvas.getContext('2d')
+    const canvas = document.getElementById('gameCanvas')
+    const ctx = canvas.getContext('2d')
 
-	
-	</script>
+    function resizeCanvas() {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+    window.addEventListener('resize', resizeCanvas)
+    resizeCanvas()
+    window.addEventListener('click')
+    document.getElementById('startButton').addEventListener('click', () => {
+      document.getElementById('title').classList.add('hidden')
+      document.getElementById('startButton').classList.add('hidden')
+      document.getElementById('skipTutorial').classList.add('hidden')
+      document.getElementById('settings').classList.add('hidden')
+      document.getElementById('hard').classList.remove('hidden')
+      document.getElementById('easy').classList.remove('hidden')
+      if (intro) {
+        //tutorial (TBD)
+      }
+      canContinue = true
+      gameLoop()
+    })
+    function gameLoop() {
+      if (!canContinue) return
+      ctx.clearRect(0, 0, canvas.width, canvas.height)// delete outdated graphics
+
+      ctx.fillStyle = 'lightblue' //background color (will be changed to an image later)
+      ctx.fillRect(0, 0, canvas.width, canvas.height) //background (placeholder)
+
+      ctx.fillStyle = 'green' //ground color (will be changed to an image later)
+      ctx.fillRect(0, groundLevel - 10, canvas.width, canvas.height - groundLevel + 10) //ground (placeholder)
+   
+      ctx.fillStyle = 'blue' //player (placeholder)
+      ctx.fillRect(playerSide, playerTop, 120, 135) //TODO: finish player dimensions and change to an image later
+
+      ctx.fillStyle = obstacleColor //obstacle (placeholder)
+      ctx.fillRect(obstacleSide, obstacleDown, 50, obstacleType) //obstacle (placeholder)
+
+        setTimeout(() => {
+          if (!paused) {
+            requestAnimationFrame(gameLoop)
+          }
+          else {
+            canContinue = false
+          }
+        }, frameDelay) //delay between frames (1 millisecond maximum)
+    }
+  </script>
 </body>
-	</html>
+
+</html>
