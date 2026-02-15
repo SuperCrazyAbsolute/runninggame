@@ -149,11 +149,10 @@ Running Game 3D version 0.1
     // 		down to slide/dig (depending on ground type) or stop the jump (harder modes).
     // 		this is the same on other devices, such as mobile
     // things to change:
-    // 		change the obstacles from right to left to back and grow.
+    // 		change the obstacles from (right to left) to (back to front while growing).
     // 		add different ground types
     // 		change the "low difficulty" obstacle from small egg to math.random()
     // 		change player to a back view and take away outlines
-    // 		add "obstacle transparency" when they are very close or very far
     // 		smoothen jumping and sliding
     // 		add in "biomes" (different themes with different obstacles, backgrounds, and music)
     // 		add in food to collect for points but not a trail (too obvious path)
@@ -166,42 +165,49 @@ Running Game 3D version 0.1
     // 		there will be a "death screen" that shows the player's score, 
     // 			and offers to restart or go to the main menu
     // 		obstacles will only speed up on tile edges but stay smooth and consistent
-    // 		make the delay between frames 1 millisecond maximum but change it for possibility testing
     // 		name the difficulties: granny, easy, medium, hard, insane, olympian 
     // 			(add + or - to show in between difficulties)
     // 			(olympian mode is no kidding, it is for less than 1% of players to get to)
     // 		add in a percentile ranking system and record highscores and averages
-    // 		mark off the things that are done
+    // 		there are 5 lanes, but lane 1 and 5 are disabled on certain modes
+    // mark off the things that are done (as in delete)
+    const canvas = document.getElementById('gameCanvas')
+    const ctx = canvas.getContext('2d')
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
     let intro = true //tutorial in the beginning
     let speederSpeed = 0.003 //how quickly game speeds up
     let extraSpeed = 10 //speeds game up (lower number means higher speed)
     let health = 10 //allows the player to survive slight hits
     let canLoseHealth = true
-    let choice = 3 //which obstacle shows up
+    let choice = 3 //which obstacle (or obstacle set) shows up
     let choiceB = 1
     let canChoose = true
     let canChooseB = true
     let points = 0 //the player's actual score (not the displayed score)
     let gainPoints = true
-    let obstacleType = 100 //obstacle's height
-    let obstacleLength = 65
-    let obstacleTypeB = 100
-    let obstacleDown = 620 //obstacle's distance from the top of the screen
-    let obstacleDownB = 620
-    let obstacleSpeed = 10
-    let obstacleSpeedB = 10
-    let obstacleSide = 1900 //obstacle's distance from the left side of the screen
-    let obstacleSideB = 1900
+    let obstacleType = 0 //obstacle's height
+    let obstacleLength = 0
+    let obstacleTypeB = 0
+    let obstacleDown = canvas.height / 2 //obstacle's distance from the top of the screen
+    let obstacleDownB = -500
+    let obstacleSpeed = 1 //speed obstacle goes down
+    let obstacleSpeedB = 1
+    let obstacleSpeedUp = 0.003 //how quickly the obstacle speed increases (disconnected from extraSpeed)
+    let obstacleSide = canvas.width / 2//obstacle's distance from the left side of the screen
+    let obstacleSideB = -500 //start ouside of screen
     let obstacleMoving = true
+    let obstacleLane = 3
     let canJump = true
     let canDig = true
     let canSlide = true
     let canStopJump = true
-    let obstacleColor = 'white' //color of the obstacle (will be changed to an image later)
+    let obstacleOpacity = 0 //opacity of the obstacle (will be changed to an image later)
+    let obstacleColor = `rgba(255,255,255,${obstacleOpacity})` //placeholder; actual opacity applied per-frame below
     let obstacleColorB = 'gray'
     let playerLeft = 180 //players left side
     let playerSide = canvas.width / 2 - 60 //players distance from the left side of the screen
-    let playerTop = 600 //player's distance from the top of the screen
+    let playerTop = canvas.height / 10 * 9 - 100 //player's distance from the top of the screen
     const groundLevel = 730 //actual ground level (horizon line is slighly higher to make it realistic)
     const jumpHeight = 400 //the height of the player's jump
     let jumpspeed = 100 //the speed of the jump and fall
@@ -217,25 +223,20 @@ Running Game 3D version 0.1
     let canSlow = true
     let obstacleBAhead = false //puts the secondary obstacle ahead of the first instead of together
     let difficulty = 1 //affects specific game properties
-    let frameDelay = 1 //delay between frames (1 millisecond maximum but change it for possibility testing)
-
-    const canvas = document.getElementById('gameCanvas')
-    const ctx = canvas.getContext('2d')
+    let frameDelay = 25 //delay beteen frames (40 FPS defualt, 25 miliseconds)
 
     function resizeCanvas() {
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
+      playerLeft = canvas.width / 2 - 60
     }
     window.addEventListener('resize', resizeCanvas)
     resizeCanvas()
-    window.addEventListener('click')
     document.getElementById('startButton').addEventListener('click', () => {
       document.getElementById('title').classList.add('hidden')
       document.getElementById('startButton').classList.add('hidden')
       document.getElementById('skipTutorial').classList.add('hidden')
       document.getElementById('settings').classList.add('hidden')
-      document.getElementById('hard').classList.remove('hidden')
-      document.getElementById('easy').classList.remove('hidden')
       if (intro) {
         //tutorial (TBD)
       }
@@ -250,22 +251,97 @@ Running Game 3D version 0.1
       ctx.fillRect(0, 0, canvas.width, canvas.height) //background (placeholder)
 
       ctx.fillStyle = 'green' //ground color (will be changed to an image later)
-      ctx.fillRect(0, groundLevel - 10, canvas.width, canvas.height - groundLevel + 10) //ground (placeholder)
-   
+      ctx.fillRect(canvas.width / 3, canvas.height / 2, canvas.width / 3, canvas.height) //ground (placeholder)
+
+      ctx.fillStyle = 'purple' //lane divider 1 (will become part of the ground image later)
+      ctx.fillRect(canvas.width / 9 * 4 - 3, canvas.height / 2, 6, canvas.height) //lane divider 1 (placeholder)
+
+      ctx.fillStyle = 'purple' //lane divider 2 (will become part of the ground image later)
+      ctx.fillRect(canvas.width / 9 * 5 - 3, canvas.height / 2, 6, canvas.height) //lane divider 2 (placeholder)
+      // notes for ground: the veiw is diagonal, so the ground will be a trapezoid with the top 
+      // edge shorter than the bottom edge, and the sides slanting inwards. 
+      // the player will be at the back but not all the way back, and the obstacles will come from the 
+      // top of the screen and move down towards the player while growing slowly.
+      // notes for obstacles: there are 3 zones: far, when obstacles are visible but not a threat,
+      // player zone, when they are a threat and stop growing, and
+      // past, when they are very close and start to slide out of the screen and become more transparent.
+      ctx.fillStyle = `rgba(255,255,255,${obstacleOpacity})` //obstacle (placeholder) — compute with current opacity
+      ctx.fillRect(obstacleSide, obstacleDown, obstacleLength, obstacleType) //obstacle (placeholder)
+
       ctx.fillStyle = 'blue' //player (placeholder)
       ctx.fillRect(playerSide, playerTop, 120, 135) //TODO: finish player dimensions and change to an image later
 
-      ctx.fillStyle = obstacleColor //obstacle (placeholder)
-      ctx.fillRect(obstacleSide, obstacleDown, 50, obstacleType) //obstacle (placeholder)
 
-        setTimeout(() => {
-          if (!paused) {
-            requestAnimationFrame(gameLoop)
-          }
-          else {
-            canContinue = false
-          }
-        }, frameDelay) //delay between frames (1 millisecond maximum)
+
+      obstacleDown += obstacleSpeed
+      obstacleSpeed += obstacleSpeedUp //decrease speed (based on veiwpoint)
+      obstacleSpeedUp -= 0.00001 //decrease the rate of speed increase (based on veiwpoint)
+      console.log('obstacleSpeed:', obstacleSpeed, 'obstacleSpeedUp:', obstacleSpeedUp)
+      // obstacleSpeedUp may become negative
+      if (obstacleSpeedUp <= 0) {
+        console.log('reached negative obstacleSpeedUp')
+      }
+      if (obstacleSpeedUp <= 0.0001) {
+        obstacleSpeed += 0.1 //make up for speed loss and disapear faster
+      }
+      obstacleSide -= obstacleSpeedUp * 200 //3D effect (literal: sliding to the side as it gets closer)
+      obstacleLength += obstacleSpeedUp * 400 //3D effect (literal: growing as it gets closer)
+      obstacleType += obstacleSpeedUp * 400 //3D effect (literal: growing as it gets closer)
+      // the obstacle shopuld speed up and growing should slow down
+
+      obstacleOpacity += 0.1 //obstacle becomes more opaque as it gets closer(far zone)
+      obstacleOpacity = Math.min(1, obstacleOpacity) //cap opacity at 1
+      if (obstacleDown >= 835) { //past zone (dissapear faster)
+        obstacleDown += 10
+        obstacleOpacity -= 0.25
+        obstacleLength -= 100
+        obstacleSide += 50
+      }
+      if (obstacleDown > canvas.height) { //reset obstacle after it goes past the player
+        obstacleOpacity = 0
+        obstacleSide = canvas.width / 2
+        obstacleLength = 0
+        obstacleType = 0
+        obstacleSpeedUp = 0.003
+        obstacleSpeed = 1
+        obstacleLane = Math.floor(Math.random() * 3) + 1 //random lane (1-3) (ineffective)
+        //choosing code here
+        obstacleDown = canvas.height / 2 - 10 //must be last to avoid visual glitches
+      }
+      setTimeout(() => {
+        if (!paused) {
+          requestAnimationFrame(gameLoop)
+        }
+        else {
+          canContinue = false
+        }
+      }, frameDelay) //delay between frames (1 millisecond maximum)
+    }
+    document.addEventListener('keydown', (event) => {
+      if (event.code === 'ArrowUp' && canJump) {
+        //jump code here
+      }
+      if (event.code === 'ArrowDown' && canDig) {
+        //dig/slide code here
+      }
+      if (event.code === 'ArrowLeft') {
+        playerSide -= canvas.width / 9
+      }
+      if (event.code === 'ArrowRight') {
+        playerSide += canvas.width / 9
+      }
+      if (event.code === 'KeyT') {
+        if (frameDelay === 300) {
+          frameDelay = 25
+        }
+        else {
+          frameDelay = 300
+        }
+      }
+    })
+    if (event.code === 'KeyY') {
+      playerSide = -1000
+      // teleport actual player outside the screen for testing purposes (will be deleted later)
     }
   </script>
 </body>
