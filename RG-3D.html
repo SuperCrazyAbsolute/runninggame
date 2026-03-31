@@ -139,7 +139,7 @@ Running Game 3D version 0.1
   <button id="easy" class="hidden">Easy mode</button>
   <canvas id="gameCanvas"></canvas>
   <script>
-    // This is the complete recoding of the running game (RG), originally in 2d.
+    // This is the complete recoding of the running game (RG), originally in 2D.
     // explanation: the player still uses arrow keys to move,
     // 		but it is in a style more similar to minion rush or temple run.
     // 		however, it is still a unique game.
@@ -165,11 +165,18 @@ Running Game 3D version 0.1
     // 		there will be a "death screen" that shows the player's score, 
     // 			and offers to restart or go to the main menu
     // 		obstacles will only speed up on tile edges but stay smooth and consistent
-    // 		name the difficulties: granny, easy, medium, hard, insane, olympian 
+    // 		name the difficulties: granny (top 99%), easy (top 80%), medium (top 60%), 
+    //      hard (top 40%), insane (top 20%), olympian (top 1%)
     // 			(add + or - to show in between difficulties)
-    // 			(olympian mode is no kidding, it is for less than 1% of players to get to)
+    // 			(olympian mode is no kidding, it is for less than 1% of CP
     // 		add in a percentile ranking system and record highscores and averages
     // 		there are 5 lanes, but lane 1 and 5 are disabled on certain modes
+    // Here is an explination of CP: it stands for certified player and is used to 
+    //    rank players compared to other, active players that have passed the test.
+    //    the test has 3 parts: make sure the player is human, they have passed the tutorial
+    //    and/or actually tried, and they have played within the last 5 months. Every real
+    //    player should be a CP simply by existing, but robots, inactive players and people
+    //    that delete the game quickly will not affect the percentile rankings.
     // mark off the things that are done (as in delete)
     const canvas = document.getElementById('gameCanvas')
     const ctx = canvas.getContext('2d')
@@ -218,12 +225,17 @@ Running Game 3D version 0.1
     let diggingDown = false
     let comingUp = false
     let isDigging = false
+    let sliding = false //sliding is short for lane changing
+    let slideSpeed = 0 //speed of sliding (0 means not sliding)
+    let easingIn = false
+    let easingOut = false //smooth sliding, very fast easing
+    let newX = canvas.width / 2 - 60 //smooth sliding and double slides
     let paused = false
     let canContinue = true //affects whether or not to continue the game loop
     let canSlow = true
     let obstacleBAhead = false //puts the secondary obstacle ahead of the first instead of together
     let difficulty = 1 //affects specific game properties
-    let frameDelay = 25 //delay beteen frames (40 FPS defualt, 25 miliseconds)
+    let frameDelay = 25 //delay between frames (40 FPS default, 25 milliseconds)
 
     function resizeCanvas() {
       canvas.width = window.innerWidth
@@ -258,7 +270,7 @@ Running Game 3D version 0.1
 
       ctx.fillStyle = 'purple' //lane divider 2 (will become part of the ground image later)
       ctx.fillRect(canvas.width / 9 * 5 - 3, canvas.height / 2, 6, canvas.height) //lane divider 2 (placeholder)
-      // notes for ground: the veiw is diagonal, so the ground will be a trapezoid with the top 
+      // notes for ground: the view is diagonal, so the ground will be a trapezoid with the top 
       // edge shorter than the bottom edge, and the sides slanting inwards. 
       // the player will be at the back but not all the way back, and the obstacles will come from the 
       // top of the screen and move down towards the player while growing slowly.
@@ -271,7 +283,30 @@ Running Game 3D version 0.1
       ctx.fillStyle = 'blue' //player (placeholder)
       ctx.fillRect(playerSide, playerTop, 120, 135) //TODO: finish player dimensions and change to an image later
 
-
+      if (sliding) {
+        if (easingIn) {
+          slideSpeed += 15
+          if (slideSpeed >= 50) {
+            slideSpeed = 50
+            easingIn = false
+            easingOut = true
+          }
+        }
+        else if (easingOut) {
+          slideSpeed -= 15
+          if (slideSpeed <= 0) {
+            slideSpeed = 0
+            easingOut = false
+            sliding = false
+          }
+        }
+        if (playerSide < newX) {
+          playerSide += slideSpeed
+        }
+        if (playerSide > newX) {
+          playerSide -= slideSpeed
+        }
+      }
 
       obstacleDown += obstacleSpeed
       obstacleSpeed += obstacleSpeedUp //decrease speed (based on veiwpoint)
@@ -287,13 +322,13 @@ Running Game 3D version 0.1
       obstacleSide -= obstacleSpeedUp * 200 //3D effect (literal: sliding to the side as it gets closer)
       obstacleLength += obstacleSpeedUp * 400 //3D effect (literal: growing as it gets closer)
       obstacleType += obstacleSpeedUp * 400 //3D effect (literal: growing as it gets closer)
-      // the obstacle shopuld speed up and growing should slow down
+      // the obstacle should speed up and growing should slow down
 
-      obstacleOpacity += 0.1 //obstacle becomes more opaque as it gets closer(far zone)
+      obstacleOpacity += 0.1 //obstacle becomes more opaque as it gets closer (far zone)
       obstacleOpacity = Math.min(1, obstacleOpacity) //cap opacity at 1
-      if (obstacleDown >= 835) { //past zone (dissapear faster)
+      if (obstacleDown >= canvas.height / 10 * 9) { //past zone (disappear faster)
         obstacleDown += 10
-        obstacleOpacity -= 0.25
+        obstacleOpacity -= 0.3
         obstacleLength -= 100
         obstacleSide += 50
       }
@@ -325,10 +360,14 @@ Running Game 3D version 0.1
         //dig/slide code here
       }
       if (event.code === 'ArrowLeft') {
-        playerSide -= canvas.width / 9
+        sliding = true
+        easingIn = true
+        newX -= canvas.width / 9
       }
       if (event.code === 'ArrowRight') {
-        playerSide += canvas.width / 9
+        sliding = true
+        easingIn = true
+        newX += canvas.width / 9
       }
       if (event.code === 'KeyT') {
         if (frameDelay === 300) {
